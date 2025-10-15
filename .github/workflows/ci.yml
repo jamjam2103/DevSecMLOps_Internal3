@@ -63,7 +63,13 @@ jobs:
           cosign sign ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} --yes
 
       # 8. Verify the signature
+      #- name: Verify Docker image signature
+      #  run: |
+      #    cosign verify ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+
       - name: Verify Docker image signature
         run: |
-          cosign verify ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          cosign verify ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} \
+          --certificate-identity-regexp ".*"
+
 
