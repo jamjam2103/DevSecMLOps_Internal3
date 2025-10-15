@@ -67,9 +67,10 @@ jobs:
       #  run: |
       #    cosign verify ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
 
-      - name: Verify Docker image signature
+      - name: Verify Docker image signature (keyless)
         run: |
           cosign verify ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} \
-          --certificate-identity-regexp ".*"
+          --certificate-identity-regexp ".*" \
+          --certificate-oidc-issuer-regexp "https://token.actions.githubusercontent.com"
 
 
