@@ -42,18 +42,16 @@ jobs:
           echo "date_tag=$DATE_TAG" >> $GITHUB_OUTPUT
           echo "latest_tag=latest" >> $GITHUB_OUTPUT
 
-      # 5. Build & Push Docker Image
-      - name: Build and push Docker image
+      # 5. Build Docker image (no push yet)
+      - name: Build Docker image (no push)
         uses: docker/build-push-action@v6
         with:
           context: .
-          push: true
+          push: false
           tags: |
             ${{ env.IMAGE_NAME }}:${{ steps.image_tags.outputs.sha_tag }}
-            ${{ env.IMAGE_NAME }}:${{ steps.image_tags.outputs.date_tag }}
-            ${{ env.IMAGE_NAME }}:latest
 
-      # 6. Scan image with Trivy
+      # 6. Scan built image with Trivy before pushing
       - name: Scan Docker image with Trivy
         uses: aquasecurity/trivy-action@master
         with:
@@ -63,7 +61,19 @@ jobs:
           ignore-unfixed: true
           exit-code: '1'
 
-      # 7. Install Cosign
+      # 7. Push Docker image only if scan passes
+      - name: Push Docker image
+        if: success()
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ steps.image_tags.outputs.sha_tag }}
+            ${{ env.IMAGE_NAME }}:${{ steps.image_tags.outputs.date_tag }}
+            ${{ env.IMAGE_NAME }}:latest
+
+      # 8. Install Cosign
       - name: Install Cosign
         uses: sigstore/cosign-installer@v3
 
