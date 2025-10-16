@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write   # required for keyless Cosign signing
+      id-token: write       # Required for keyless Cosign signing
       packages: write
 
     steps:
@@ -21,18 +21,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Setup Docker Buildx
+      # 2. Set up Docker Buildx for multi-platform builds
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # 3. Login to Docker Hub
+      # 3. Log in to Docker Hub
       - name: Docker Hub Login
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # 4. Set image tags
+      # 4. Define image tags
       - name: Set Docker image tags
         id: image_tags
         run: |
@@ -42,16 +42,15 @@ jobs:
           echo "date_tag=$DATE_TAG" >> $GITHUB_OUTPUT
           echo "latest_tag=latest" >> $GITHUB_OUTPUT
 
-      # 5. Build Docker image (no push yet)
-      - name: Build Docker image (no push)
+      # 5. Build Docker image locally (do not push yet)
+      - name: Build Docker image
         uses: docker/build-push-action@v6
         with:
           context: .
           push: false
-          tags: |
-            ${{ env.IMAGE_NAME }}:${{ steps.image_tags.outputs.sha_tag }}
+          tags: ${{ env.IMAGE_NAME }}:${{ steps.image_tags.outputs.sha_tag }}
 
-      # 6. Scan built image with Trivy before pushing
+      # 6. Scan Docker image with Trivy before pushing
       - name: Scan Docker image with Trivy
         uses: aquasecurity/trivy-action@master
         with:
@@ -59,9 +58,9 @@ jobs:
           format: 'table'
           vuln-type: 'os,library'
           ignore-unfixed: true
-          exit-code: '1'
+          exit-code: '1'   # Fail workflow if critical vulnerabilities exist
 
-      # 7. Push Docker image only if scan passes
+      # 7. Push Docker image to Docker Hub (only if scan passes)
       - name: Push Docker image
         if: success()
         uses: docker/build-push-action@v6
@@ -73,22 +72,23 @@ jobs:
             ${{ env.IMAGE_NAME }}:${{ steps.image_tags.outputs.date_tag }}
             ${{ env.IMAGE_NAME }}:latest
 
-      # 8. Install Cosign
+      # 8. Install Cosign for image signing
       - name: Install Cosign
         uses: sigstore/cosign-installer@v3
 
-      # 8. Sign the image (keyless, via GitHub OIDC)
-      - name: Sign Docker image with Cosign (keyless)
+      # 9. Sign Docker images with Cosign (keyless, GitHub OIDC)
+      - name: Sign Docker images
         run: |
           for TAG in ${{ steps.image_tags.outputs.sha_tag }} ${{ steps.image_tags.outputs.date_tag }} latest; do
             cosign sign ${{ env.IMAGE_NAME }}:$TAG --yes
           done
 
-      # 9. Verify the signature (keyless)
-      - name: Verify Docker image signature
+      # 10. Verify Docker image signatures (keyless)
+      - name: Verify Docker image signatures
         run: |
           for TAG in ${{ steps.image_tags.outputs.sha_tag }} ${{ steps.image_tags.outputs.date_tag }} latest; do
             cosign verify ${{ env.IMAGE_NAME }}:$TAG \
-            --certificate-identity-regexp ".*" \
-            --certificate-oidc-issuer-regexp "https://token.actions.githubusercontent.com"
+              --certificate-identity-regexp ".*" \
+              --certificate-oidc-issuer-regexp "https://token.actions.githubusercontent.com"
           done
+
