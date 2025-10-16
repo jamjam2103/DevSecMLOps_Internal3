@@ -1,0 +1,6 @@
+# (DEMO ONLY)
+AWS_ACCESS_KEY_ID = AKIAIOSFODNN7EXAMPLE
+AWS_SECRET_ACCESS_KEY = wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+# Github token-looking pattern
+ghp_1234567890abcdefghijklmnopqrstuv
+
