@@ -17,11 +17,11 @@ jobs:
       packages: write
 
     steps:
-      # 1. Checkout code
+      # 1. Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Set up Docker Buildx for multi-platform builds
+      # 2. Set up Docker Buildx
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -42,26 +42,27 @@ jobs:
           echo "date_tag=$DATE_TAG" >> $GITHUB_OUTPUT
           echo "latest_tag=latest" >> $GITHUB_OUTPUT
 
-      # 5. Build Docker image locally (do not push yet)
-      - name: Build Docker image
+      # 5. Build Docker image locally (load to Docker daemon)
+      - name: Build Docker image locally
         uses: docker/build-push-action@v6
         with:
           context: .
           push: false
+          load: true    # Make image available locally for Trivy scan
           tags: ${{ env.IMAGE_NAME }}:${{ steps.image_tags.outputs.sha_tag }}
 
-      # 6. Scan Docker image with Trivy before pushing
+      # 6. Scan Docker image locally with Trivy
       - name: Scan Docker image with Trivy
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ env.IMAGE_NAME }}:${{ steps.image_tags.outputs.sha_tag }}
-          format: 'table'
-          vuln-type: 'os,library'
+          format: table
+          vuln-type: os,library
           ignore-unfixed: true
           exit-code: '1'   # Fail workflow if critical vulnerabilities exist
 
-      # 7. Push Docker image to Docker Hub (only if scan passes)
-      - name: Push Docker image
+      # 7. Push Docker images to Docker Hub (if scan passes)
+      - name: Push Docker images
         if: success()
         uses: docker/build-push-action@v6
         with:
@@ -72,18 +73,18 @@ jobs:
             ${{ env.IMAGE_NAME }}:${{ steps.image_tags.outputs.date_tag }}
             ${{ env.IMAGE_NAME }}:latest
 
-      # 8. Install Cosign for image signing
+      # 8. Install Cosign for signing
       - name: Install Cosign
         uses: sigstore/cosign-installer@v3
 
-      # 9. Sign Docker images with Cosign (keyless, GitHub OIDC)
+      # 9. Sign Docker images (keyless, GitHub OIDC)
       - name: Sign Docker images
         run: |
           for TAG in ${{ steps.image_tags.outputs.sha_tag }} ${{ steps.image_tags.outputs.date_tag }} latest; do
             cosign sign ${{ env.IMAGE_NAME }}:$TAG --yes
           done
 
-      # 10. Verify Docker image signatures (keyless)
+      # 10. Verify Docker image signatures
       - name: Verify Docker image signatures
         run: |
           for TAG in ${{ steps.image_tags.outputs.sha_tag }} ${{ steps.image_tags.outputs.date_tag }} latest; do
