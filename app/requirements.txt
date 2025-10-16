@@ -1,5 +1,5 @@
-#flask==3.0.3
-Flask==0.12.2        # Old, vulnerable to CVE-2018-1000656
-requests==2.19.1     # Vulnerable to CVE-2018-18074
-Jinja2==2.10          # Vulnerable to CVE-2019-10906
+flask==3.0.3
+#Flask==0.12.2        # Old, vulnerable to CVE-2018-1000656
+#requests==2.19.1     # Vulnerable to CVE-2018-18074
+#Jinja2==2.10          # Vulnerable to CVE-2019-10906
 
